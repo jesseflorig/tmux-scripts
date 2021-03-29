@@ -1,0 +1,40 @@
+#!/bin/zsh
+
+set -euC
+
+SESSION_NAME="picard"
+REPOS_DIR="~/Repos"
+PAPI_DIR="$REPOS_DIR/papi"
+PRIME_DIR="$REPOS_DIR/prime"
+
+attach_to_session() {
+    [ -n "${TMUX:-}" ] &&
+        tmux switch-client -t "=${SESSION_NAME}" ||
+        tmux attach-session -t "=${SESSION_NAME}"
+}
+
+# Attach to session and stop script if it exists
+if tmux has-session -t "=${SESSION_NAME}" 2> /dev/null; then
+    attach_to_session
+    exit 0
+fi
+
+# Otherwise create the session
+tmux new-session -d -s $SESSION_NAME -c $PRIME_DIR
+
+# Setup vim window on left pane
+tmux send-keys "cd $PRIME_DIR && vi" C-m
+
+# Setup PAPI server on top right pane
+tmux split-window -h
+tmux send-keys "cd $PAPI_DIR && make run" C-m
+
+# Setup PRIME server on middle right pane
+tmux split-window -v
+tmux send-keys "cd $PRIME_DIR && yarn start" C-m
+
+# Setup PRIME directory on bottom right pane
+tmux split-window -v
+tmux send-keys "cd $PRIME_DIR" C-m
+
+attach_to_session
